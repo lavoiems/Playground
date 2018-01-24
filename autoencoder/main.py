@@ -29,6 +29,7 @@ if __name__ == '__main__':
             inputs = 2 * inputs - 1.
             prime = autoencoder(inputs)
             loss = criterion(prime, inputs)
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
