@@ -29,14 +29,12 @@ def get_data(mutation, seed, mean):
     train_idx, valid_idx = idx[:size_train], idx[size_train:size_train+size_valid]
     if mean:
         train_data = torch.FloatTensor(data[train_idx].mean(axis=1))
-        valid_data = torch.FloatTensor(data[valid_idx].mean(axis=1))
         train_label = torch.FloatTensor(labels[train_idx])
-        valid_label = torch.FloatTensor(labels[valid_idx])
     else:
         train_data = torch.FloatTensor(data[train_idx].reshape(-1, data.shape[2]))
-        valid_data = torch.FloatTensor(data[valid_idx].reshape(-1, data.shape[2]))
         train_label = torch.FloatTensor(np.repeat(labels[train_idx], 100))
-        valid_label = torch.FloatTensor(np.repeat(labels[valid_idx], 100))
+    valid_data = torch.FloatTensor(data[valid_idx].reshape(-1, data.shape[2]))
+    valid_label = torch.FloatTensor(np.repeat(labels[valid_idx], 100))
 
     return (train_data, train_label), (valid_data, valid_label)
 
