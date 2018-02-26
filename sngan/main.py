@@ -26,6 +26,7 @@ def weights_init(m):
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 
+
 def get_data(loader):
     data = iter(loader).next()
     data[0] = 2 * data[0] - 1.
@@ -33,28 +34,28 @@ def get_data(loader):
 
 
 def get_gen_loss(gan, discriminator, batch_size, z_size):
-    criterion = nn.BCELoss().cuda()
+    criterion = nn.Softplus().cuda()
     z = Variable(torch.Tensor(batch_size, z_size).normal_(0,1)).cuda()
     prime = gan(z)
     fake_out = discriminator(prime)
-    fake_loss = criterion(fake_out, Variable(torch.ones(batch_size, 1).cuda()))
+    fake_loss = criterion(-fake_out).mean()
     fake_loss.backward()
 
     return fake_loss
 
 
 def get_disc_loss(train_data, gan, discriminator, batch_size, z_size):
-    criterion = nn.BCELoss().cuda()
+    criterion = nn.Softplus().cuda()
     real = Variable(train_data[0].cuda())
     real = 2 * real - 1.
     real_out = discriminator(real)
-    real_loss = criterion(real_out, Variable(torch.ones(batch_size, 1).cuda()))
+    real_loss = criterion(-real_out).mean()
     real_loss.backward()
 
     z = Variable(torch.FloatTensor(batch_size, z_size).normal_(0,1).cuda())
     prime = gan(z).detach()
     fake_out = discriminator(prime)
-    fake_loss = criterion(fake_out, Variable(torch.zeros(batch_size, 1).cuda()))
+    fake_loss = (criterion(-fake_out) + fake_out).mean()
     fake_loss.backward()
 
     discriminator.restore()
@@ -85,11 +86,11 @@ def compute_tsne(datas, encoders, labels, dim_l):
 
 
 if __name__ == '__main__':
-    setup(sys.argv[1], sys.argv[2], env='sgan', use_tanh=True)
-    train_loader, test_loader, shape = load_cifar('/Tmp/lavoiems', batch_size, test_batch_size=64)
+    setup(sys.argv[1], sys.argv[2], env='test', use_tanh=True)
+    train_loader, test_loader, shape = load_svhn('/Tmp/lavoiems', batch_size, test_batch_size=64)
 
     gan = Decoder(shape, h_size, z_size, True, None, 'ReLU', 4).cuda()
-    discriminator = Discriminator(Encoder(shape, h_size, 1, True, None, 'LeakyReLU', 4, True)).cuda()
+    discriminator = Discriminator(Encoder(shape, h_size, 1, True, None, 'LeakyReLU', 4, SpectralNorm)).cuda()
     gan.apply(weights_init)
     discriminator.apply(weights_init)
 

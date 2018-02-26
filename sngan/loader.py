@@ -10,7 +10,9 @@ def load_svhn(root, train_batch_size, test_batch_size=None):
     test_loader = torch.utils.data.DataLoader(test, batch_size=test_batch_size or train_batch_size,
                                               shuffle=True, num_workers=2)
 
-    return train_loader, test_loader
+    shape = train_loader.dataset[0][0].shape
+
+    return train_loader, test_loader, shape
 
 
 def load_mnist(root, train_batch_size, test_batch_size=None):

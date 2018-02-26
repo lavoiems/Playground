@@ -68,7 +68,7 @@ class Discriminator(nn.Module):
 
     def forward(self, x):
         encoded = self.encoder(x)
-        return F.sigmoid(encoded)
+        return encoded
 
     def restore(self):
         self.apply(restore)
