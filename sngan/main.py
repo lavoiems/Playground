@@ -5,7 +5,6 @@ from Decoder import Decoder
 from Encoder import Encoder
 from Gan import Gan, Discriminator, SpectralNorm
 from SharedEncoder import SharedEncoder
-from Vae import Vae, loss_function
 import torch.optim as optim
 from torch import nn
 from torch.autograd import Variable
