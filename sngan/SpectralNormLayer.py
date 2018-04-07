@@ -1,7 +1,6 @@
 from torch import nn
 import torch.nn.functional as F
 import torch
-from torch.autograd import Variable
 
 
 def l2normalize(v, esp=1e-8):
