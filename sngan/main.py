@@ -2,9 +2,8 @@ from loader import load_svhn, load_mnist, load_cifar
 from viz import setup, save_images
 import time
 from Decoder import Decoder
-from Encoder import Encoder
-from Gan import Gan, Discriminator, SpectralNorm
-from SharedEncoder import SharedEncoder
+from Encoder import SNEncoder
+from Gan import Gan
 import torch.optim as optim
 from torch import nn
 from torch.autograd import Variable
@@ -15,7 +14,7 @@ import viz
 
 batch_size = 64
 h_size = 64
-z_size = 64
+z_size = 128
 
 
 def weights_init(m):
@@ -57,8 +56,6 @@ def get_disc_loss(train_data, gan, discriminator, batch_size, z_size):
     fake_out = discriminator(prime)
     fake_loss = (criterion(-fake_out) + fake_out).mean()
     fake_loss.backward()
-
-    discriminator.restore()
     return real_loss, fake_loss
 
 
@@ -86,11 +83,11 @@ def compute_tsne(datas, encoders, labels, dim_l):
 
 
 if __name__ == '__main__':
-    setup(sys.argv[1], sys.argv[2], env='test', use_tanh=True)
+    setup(sys.argv[1], sys.argv[2], env='sn_gan_test', use_tanh=True)
     train_loader, test_loader, shape = load_svhn('/Tmp/lavoiems', batch_size, test_batch_size=64)
 
-    gan = Decoder(shape, h_size, z_size, True, None, 'ReLU', 4).cuda()
-    discriminator = Discriminator(Encoder(shape, h_size, 1, True, None, 'LeakyReLU', 4, SpectralNorm)).cuda()
+    gan = Decoder(shape, h_size, z_size, True, nn.ReLU(True), 4).cuda()
+    discriminator = SNEncoder(shape, h_size, 1, True, nn.LeakyReLU(0.2, True), 4).cuda()
     gan.apply(weights_init)
     discriminator.apply(weights_init)
 
@@ -117,5 +114,4 @@ if __name__ == '__main__':
 
         data, labels = get_data(test_loader)
         vizualize(data, gan, 0)
-        # compute_tsne([mnist_data, svhn_data], [mnist_encoder, svhn_encoder], [mnist_labels, svhn_labels], 10)
 

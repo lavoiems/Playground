@@ -7,10 +7,10 @@ from Encoder import Encoder
 from modules import View, n_maps
 
 
-def conv_decoder(shape, dim_h, z_size, batch_norm, dropout, nonlinearity, min_dim):
+def conv_decoder(shape, dim_h, z_size, batch_norm, nonlinearity, min_dim):
     model = nn.Sequential()
     n_convolution = int(math.log(shape[1] / min_dim, 2))
-    c, x, y = 2 * (n_convolution - 1) * dim_h, (shape[1] / 2 ** n_convolution), (shape[2] / (2 ** n_convolution))
+    c, x, y = 2 * (n_convolution - 1) * dim_h, int(shape[1] / 2 ** n_convolution), int(shape[2] / (2 ** n_convolution))
     model.add_module('lin', nn.Linear(z_size, c * x * y))
     model.add_module('_bn', nn.BatchNorm1d(c * x * y))
     model.add_module('expand', View(-1, c, x, y))
@@ -23,19 +23,15 @@ def conv_decoder(shape, dim_h, z_size, batch_norm, dropout, nonlinearity, min_di
         model.add_module(name, conv)
         if batch_norm:
             model.add_module(name + '_bn', nn.BatchNorm2d(n_maps_out))
-        if dropout:
-            model.add_module(name + '_do', nn.Dropout2d(p=dropout))
         if c != 0:
             model.add_module('%s_%s' % (name, nonlinearity), nonlinearity)
     return model
 
 
 class Decoder(nn.Module):
-    def __init__(self, shape, dim_h, z_size, batch_norm, dropout, desired_nonlinearity, min_dim):
+    def __init__(self, shape, dim_h, z_size, batch_norm, nonlinearity, min_dim):
         super(Decoder, self).__init__()
-        assert hasattr(nn, desired_nonlinearity), '%s is not a valid nonlinearity' % desired_nonlinearity
-        nonlinearity = getattr(nn, desired_nonlinearity)(True)
-        self.decoder = conv_decoder(shape, dim_h, z_size, batch_norm, dropout, nonlinearity, min_dim)
+        self.decoder = conv_decoder(shape, dim_h, z_size, batch_norm, nonlinearity, min_dim)
         self.decoder.add_module('nonlinearity', nn.Tanh())
 
     def forward(self, x):

@@ -99,7 +99,7 @@ def save_images(images, num_x, num_y, out_file=None, labels=None,
             fill = 255
         else:
             arrs = []
-            for c in xrange(dim_c):
+            for c in range(dim_c):
                 arr = tile_raster_images(
                     X=images[:, c].copy(), img_shape=(dim_x, dim_y),
                     tile_shape=(num_x, num_y),
