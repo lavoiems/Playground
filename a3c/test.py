@@ -51,10 +51,9 @@ def test(rank, args, shared_model, counter, vis):
                 counter.value, counter.value / (time.time() - start_time),
                 reward_sum, episode_length))
             rewards_sum = np.append(rewards_sum, [reward_sum])
-            vis.line(rewards_sum, win='rewards')
+            #vis.line(rewards_sum, win='rewards')
             reward_sum = 0
             episode_length = 0
-            actions.clear()
             state = env.reset()
             time.sleep(60)
 

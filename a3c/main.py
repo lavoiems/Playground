@@ -5,13 +5,13 @@ import numpy as np
 import torch
 import torch.multiprocessing as mp
 
-import my_optim
+import shared_optimizer
 from envs import create_atari_env
 from model import ActorCritic
 from test import test
 from train import train
 import time
-import visdom
+#import visdom
 
 parser = argparse.ArgumentParser(description='A3C')
 parser.add_argument('--lr', type=float, default=0.0001,
@@ -50,18 +50,19 @@ parser.add_argument('--port', help='Visdom port')
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    vis = visdom.Visdom(server=args.server, port=args.port, env=args.exp_name)
+    #vis = visdom.Visdom(server=args.server, port=args.port, env=args.exp_name)
+    vis=None
 
     torch.manual_seed(args.seed)
     env = create_atari_env(args.env_name)
     shared_model = ActorCritic(
-        env.observation_space.shape[0], env.action_space)
+        env.observation_space.shape[0], env.action_space, args.use_sn)
     shared_model.share_memory()
 
     if args.no_shared:
         optimizer = None
     else:
-        optimizer = my_optim.SharedAdam(shared_model.parameters(), lr=args.lr)
+        optimizer = shared_optimizer.SharedAdam(shared_model.parameters(), lr=args.lr)
         optimizer.share_memory()
 
     processes = []
