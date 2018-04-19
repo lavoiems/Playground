@@ -21,7 +21,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
     env = create_atari_env(args.env_name)
     env.seed(args.seed + rank)
 
-    model = ActorCritic(env.observation_space.shape[0], env.action_space)
+    model = ActorCritic(env.observation_space.shape[0], env.action_space, args.use_sn)
 
     if optimizer is None:
         optimizer = optim.Adam(shared_model.parameters(), lr=args.lr)
@@ -34,7 +34,6 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
 
     episode_length = 0
     while True:
-        # Sync with the shared model
         model.load_state_dict(shared_model.state_dict())
 
         values = []
@@ -87,10 +86,9 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
             advantage = R - values[i]
             value_loss = value_loss + 0.5 * advantage.pow(2)
 
-            # Generalized Advantage Estimataion
             delta_t = rewards[i] + args.gamma * \
                 values[i + 1].data - values[i].data
-            gae = gae * args.gamma * args.tau + delta_t
+            gae = gae * args.gamma + delta_t
 
             policy_loss = policy_loss - \
                 log_probs[i] * Variable(gae) - args.entropy_coef * entropies[i]
@@ -98,7 +96,8 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
         optimizer.zero_grad()
 
         (policy_loss + args.value_loss_coef * value_loss).backward()
-        torch.nn.utils.clip_grad_norm(model.parameters(), args.max_grad_norm)
+        if args.max_grad_norm:
+            torch.nn.utils.clip_grad_norm(model.parameters(), args.max_grad_norm)
 
         ensure_shared_grads(model, shared_model)
         optimizer.step()

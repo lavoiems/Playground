@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from SpectralNormLayer import SNConv2d, SNLinear
 
 
 def normalized_columns_initializer(weights, std=1.0):
@@ -29,18 +30,23 @@ def weights_init(m):
 
 
 class ActorCritic(torch.nn.Module):
-    def __init__(self, num_inputs, action_space):
+    def __init__(self, num_inputs, action_space, use_sn):
         super(ActorCritic, self).__init__()
-        self.conv1 = nn.Conv2d(num_inputs, 32, 3, stride=2, padding=1)
-        self.conv2 = nn.Conv2d(32, 32, 3, stride=2, padding=1)
-        self.conv3 = nn.Conv2d(32, 32, 3, stride=2, padding=1)
-        self.conv4 = nn.Conv2d(32, 32, 3, stride=2, padding=1)
+        if use_sn:
+            Conv2d, Linear = SNConv2d, SNLinear
+        else:
+            Conv2d, Linear = nn.Conv2d, nn.Linear
 
-        self.lin = nn.Linear(32 * 3 * 3, 256)
+        self.conv1 = Conv2d(num_inputs, 32, 3, stride=2, padding=1)
+        self.conv2 = Conv2d(32, 32, 3, stride=2, padding=1)
+        self.conv3 = Conv2d(32, 32, 3, stride=2, padding=1)
+        self.conv4 = Conv2d(32, 32, 3, stride=2, padding=1)
+
+        self.lin = Linear(32 * 3 * 3, 256)
 
         num_outputs = action_space.n
-        self.critic_linear = nn.Linear(256, 1)
-        self.actor_linear = nn.Linear(256, num_outputs)
+        self.critic_linear = Linear(256, 1)
+        self.actor_linear = Linear(256, num_outputs)
 
         self.apply(weights_init)
         self.actor_linear.weight.data = normalized_columns_initializer(

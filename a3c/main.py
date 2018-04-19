@@ -1,5 +1,6 @@
 import argparse
 import os
+import numpy as np
 
 import torch
 import torch.multiprocessing as mp
@@ -12,9 +13,6 @@ from train import train
 import time
 import visdom
 
-# Based on
-# https://github.com/pytorch/examples/tree/master/mnist_hogwild
-# Training settings
 parser = argparse.ArgumentParser(description='A3C')
 parser.add_argument('--lr', type=float, default=0.0001,
                     help='learning rate (default: 0.0001)')
@@ -27,7 +25,7 @@ parser.add_argument('--value-loss-coef', type=float, default=0.5,
 parser.add_argument('--max-grad-norm', type=float, default=50,
                     help='value loss coefficient (default: 50)')
 parser.add_argument('--seed', type=int, default=int(time.time()),
-                    help='random seed (default: 1)')
+                    help='random seed')
 parser.add_argument('--num-processes', type=int, default=4,
                     help='how many training processes to use (default: 4)')
 parser.add_argument('--num-steps', type=int, default=20,
@@ -38,16 +36,21 @@ parser.add_argument('--env-name', default='PongDeterministic-v4',
                     help='environment to train on (default: PongDeterministic-v4)')
 parser.add_argument('--no-shared', default=False,
                     help='use an optimizer without shared momentum.')
+parser.add_argument('--exp-name', default='main',
+                    help='Name of the environment')
+parser.add_argument('--save-dir', default='.',
+                    help='Root directory where to save results')
+parser.add_argument('--backward', default='None',
+                    help='Backward procedure')
+parser.add_argument('--use-sn', default=False,
+                    help='Use spectral normalisation')
 parser.add_argument('--server', help='Visdom server')
 parser.add_argument('--port', help='Visdom port')
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    vis = visdom.Visdom(server=args.server, port=args.port)
-
-    vis.matplot([1,2,3])
-    exit(0)
+    vis = visdom.Visdom(server=args.server, port=args.port, env=args.exp_name)
 
     torch.manual_seed(args.seed)
     env = create_atari_env(args.env_name)

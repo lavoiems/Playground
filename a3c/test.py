@@ -1,4 +1,5 @@
 import time
+import numpy as np
 from collections import deque
 
 import torch
@@ -15,19 +16,18 @@ def test(rank, args, shared_model, counter, vis):
     env = create_atari_env(args.env_name)
     env.seed(args.seed + rank)
 
-    model = ActorCritic(env.observation_space.shape[0], env.action_space)
+    model = ActorCritic(env.observation_space.shape[0], env.action_space, args.use_sn)
 
     model.eval()
 
     state = env.reset()
     state = torch.from_numpy(state)
+    rewards_sum = np.array([])
     reward_sum = 0
     done = True
 
     start_time = time.time()
 
-    # a quick hack to prevent the agent from stucking
-    actions = deque(maxlen=100)
     episode_length = 0
     while True:
         episode_length += 1
@@ -44,18 +44,14 @@ def test(rank, args, shared_model, counter, vis):
         done = done or episode_length >= args.max_episode_length
         reward_sum += reward
 
-        # a quick hack to prevent the agent from stucking
-        actions.append(action[0, 0])
-        if actions.count(actions[0]) == actions.maxlen:
-            done = True
-
         if done:
             print("Time {}, num steps {}, FPS {:.0f}, episode reward {}, episode length {}".format(
                 time.strftime("%Hh %Mm %Ss",
                               time.gmtime(time.time() - start_time)),
                 counter.value, counter.value / (time.time() - start_time),
                 reward_sum, episode_length))
-            vis.plot
+            rewards_sum = np.append(rewards_sum, [reward_sum])
+            vis.line(rewards_sum, win='rewards')
             reward_sum = 0
             episode_length = 0
             actions.clear()
