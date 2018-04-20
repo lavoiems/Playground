@@ -33,6 +33,7 @@ class ActorCritic(torch.nn.Module):
     def __init__(self, num_inputs, action_space, use_sn):
         super(ActorCritic, self).__init__()
         if use_sn:
+            print(type(use_sn))
             Conv2d, Linear = SNConv2d, SNLinear
         else:
             Conv2d, Linear = nn.Conv2d, nn.Linear
@@ -42,11 +43,11 @@ class ActorCritic(torch.nn.Module):
         self.conv3 = Conv2d(32, 32, 3, stride=2, padding=1)
         self.conv4 = Conv2d(32, 32, 3, stride=2, padding=1)
 
-        self.lin = Linear(32 * 3 * 3, 256)
+        self.lin = nn.Linear(32 * 3 * 3, 256)
 
         num_outputs = action_space.n
-        self.critic_linear = Linear(256, 1)
-        self.actor_linear = Linear(256, num_outputs)
+        self.critic_linear = nn.Linear(256, 1)
+        self.actor_linear = nn.Linear(256, num_outputs)
 
         self.apply(weights_init)
         self.actor_linear.weight.data = normalized_columns_initializer(

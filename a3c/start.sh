@@ -5,6 +5,8 @@ export PYTHONUNBUFFERED=1
 echo Running on $HOSTNAME
 echo Running script $1
 export OMP_NUM_THREADS=8
+module load miniconda3
+source activate py36
 
-python main.py --server http://samuel.zapto.org --port 14445
+python main.py --server http://samuel.zapto.org --port 14445 --seed 1 --use-sn True --max-grad-norm 0 --exp-name sn
 

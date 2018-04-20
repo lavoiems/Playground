@@ -8,6 +8,9 @@ from torch.autograd import Variable
 
 from envs import create_atari_env
 from model import ActorCritic
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pylab as plt
 
 
 def test(rank, args, shared_model, counter, vis):
@@ -29,6 +32,7 @@ def test(rank, args, shared_model, counter, vis):
     start_time = time.time()
 
     episode_length = 0
+    actions = deque(maxlen=100)
     while True:
         episode_length += 1
         # Sync with the shared model
@@ -44,6 +48,9 @@ def test(rank, args, shared_model, counter, vis):
         done = done or episode_length >= args.max_episode_length
         reward_sum += reward
 
+        actions.append(action[0, 0])
+        if actions.count(actions[0]) == actions.maxlen:
+            done = True
         if done:
             print("Time {}, num steps {}, FPS {:.0f}, episode reward {}, episode length {}".format(
                 time.strftime("%Hh %Mm %Ss",
@@ -51,9 +58,12 @@ def test(rank, args, shared_model, counter, vis):
                 counter.value, counter.value / (time.time() - start_time),
                 reward_sum, episode_length))
             rewards_sum = np.append(rewards_sum, [reward_sum])
+            plt.plot(rewards_sum)
+            plt.savefig(args.exp_name + '_reward.png')
             #vis.line(rewards_sum, win='rewards')
             reward_sum = 0
             episode_length = 0
+            actions.clear()
             state = env.reset()
             time.sleep(60)
 
