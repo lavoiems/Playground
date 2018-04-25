@@ -21,7 +21,8 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
     env = create_atari_env(args.env_name)
     env.seed(args.seed + rank)
 
-    model = ActorCritic(env.observation_space.shape[0], env.action_space, args.use_sn)
+    model = ActorCritic(env.observation_space.shape[0], env.action_space, args.use_sn_critic, args.use_sn_actor,
+                        args.use_sn_shared, args.depth)
 
     if optimizer is None:
         optimizer = optim.Adam(shared_model.parameters(), lr=args.lr)
@@ -35,6 +36,12 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
     episode_length = 0
     while True:
         model.load_state_dict(shared_model.state_dict())
+        if done:
+            cx = Variable(torch.zeros(1, 256))
+            hx = Variable(torch.zeros(1, 256))
+        else:
+            cx = Variable(cx.data)
+            hx = Variable(hx.data)
 
         values = []
         log_probs = []
@@ -43,7 +50,8 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
 
         for step in range(args.num_steps):
             episode_length += 1
-            value, logit = model((Variable(state.unsqueeze(0))))
+            value, logit, (hx, cx) = model((Variable(state.unsqueeze(0)),
+                                            (hx, cx)))
             prob = F.softmax(logit, 1)
             log_prob = F.log_softmax(logit, 1)
             entropy = -(log_prob * prob).sum(1, keepdim=True)
@@ -73,7 +81,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
 
         R = torch.zeros(1, 1)
         if not done:
-            value, _ = model((Variable(state.unsqueeze(0))))
+            value, _, _ = model((Variable(state.unsqueeze(0)), (hx, cx)))
             R = value.data
 
         values.append(Variable(R))
@@ -91,13 +99,11 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
             gae = gae * args.gamma + delta_t
 
             policy_loss = policy_loss - \
-                log_probs[i] * Variable(gae) - args.entropy_coef * entropies[i]
+                log_probs[i] * Variable(gae) - args.entropy * entropies[i]
 
         optimizer.zero_grad()
 
-        (policy_loss + args.value_loss_coef * value_loss).backward()
-        if args.max_grad_norm:
-            torch.nn.utils.clip_grad_norm(model.parameters(), args.max_grad_norm)
+        (policy_loss + args.value_loss * value_loss).backward()
 
         ensure_shared_grads(model, shared_model)
         optimizer.step()

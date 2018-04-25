@@ -5,6 +5,9 @@ import torch.optim as optim
 
 
 class SharedAdam(optim.Adam):
+    """Implements Adam algorithm with shared states.
+    """
+
     def __init__(self,
                  params,
                  lr=1e-3,
@@ -29,6 +32,11 @@ class SharedAdam(optim.Adam):
                 state['exp_avg_sq'].share_memory_()
 
     def step(self, closure=None):
+        """Performs a single optimization step.
+        Arguments:
+            closure (callable, optional): A closure that reevaluates the model
+                and returns the loss.
+        """
         loss = None
         if closure is not None:
             loss = closure()

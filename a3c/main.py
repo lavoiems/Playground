@@ -1,68 +1,86 @@
+from __future__ import print_function
+
 import argparse
 import os
-import numpy as np
+import json
 
 import torch
 import torch.multiprocessing as mp
+import numpy as np
 
-import shared_optimizer
+import optim
 from envs import create_atari_env
 from model import ActorCritic
-from test import test
+from evaluation import evaluation
 from train import train
-import time
-#import visdom
+import visdom
 
-parser = argparse.ArgumentParser(description='A3C')
-parser.add_argument('--lr', type=float, default=0.0001,
-                    help='learning rate (default: 0.0001)')
-parser.add_argument('--gamma', type=float, default=0.99,
-                    help='discount factor for rewards (default: 0.99)')
-parser.add_argument('--entropy-coef', type=float, default=0.01,
-                    help='entropy term coefficient (default: 0.01)')
-parser.add_argument('--value-loss-coef', type=float, default=0.5,
-                    help='value loss coefficient (default: 0.5)')
-parser.add_argument('--max-grad-norm', type=float, default=50,
-                    help='value loss coefficient (default: 50)')
-parser.add_argument('--seed', type=int, default=int(time.time()),
-                    help='random seed')
-parser.add_argument('--num-processes', type=int, default=4,
-                    help='how many training processes to use (default: 4)')
-parser.add_argument('--num-steps', type=int, default=20,
-                    help='number of forward steps in A3C (default: 20)')
-parser.add_argument('--max-episode-length', type=int, default=1000000,
-                    help='maximum length of an episode (default: 1000000)')
-parser.add_argument('--env-name', default='PongDeterministic-v4',
-                    help='environment to train on (default: PongDeterministic-v4)')
-parser.add_argument('--no-shared', default=False,
-                    help='use an optimizer without shared momentum.')
-parser.add_argument('--exp-name', default='main',
-                    help='Name of the environment')
-parser.add_argument('--save-dir', default='.',
-                    help='Root directory where to save results')
-parser.add_argument('--backward', default='None',
-                    help='Backward procedure')
-parser.add_argument('--use-sn', default=False,
-                    help='Use spectral normalisation')
-parser.add_argument('--server', help='Visdom server')
-parser.add_argument('--port', help='Visdom port')
 
+def parse_arg():
+    parser = argparse.ArgumentParser(description='A3C')
+    parser.add_argument('--lr', type=float, default=0.0001)
+    parser.add_argument('--gamma', type=float, default=0.99)
+    parser.add_argument('--entropy', type=float, default=0.01)
+    parser.add_argument('--value-loss', type=float, default=0.5)
+    parser.add_argument('--seed', type=int, default=2)
+    parser.add_argument('--num-processes', type=int, default=4)
+    parser.add_argument('--num-steps', type=int, default=20)
+    parser.add_argument('--max-episode-length', type=int, default=1000000)
+    parser.add_argument('--num-episodes', type=int, default=200)
+    parser.add_argument('--env-name', default='PongDeterministic-v4')
+    parser.add_argument('--no-shared', default=False)
+    parser.add_argument('--use-sn-critic', default=False, type=bool)
+    parser.add_argument('--use-sn-actor', default=False, type=bool)
+    parser.add_argument('--use-sn-shared', default=False, type=bool)
+    parser.add_argument('--depth', default=0, type=int)
+    parser.add_argument('--use-visdom', default=False, type=bool)
+    parser.add_argument('--server', help='Visdom server')
+    parser.add_argument('--port', help='Visdom port')
+    parser.add_argument('--exp-name', default='main')
+    parser.add_argument('--root-path', default='.')
+    return parser.parse_args()
+
+
+def prepare_save_path(args):
+    if not os.path.isdir(args.save_path):
+        print('%s did not exist. Creating it' % args.save_path)
+        os.makedirs(args.save_path)
+    os.makedirs(args.model_path, exist_ok=True)
+
+
+class MockVisdom():
+    def text(self, *args, **kwargs):
+        pass
+
+    def line(self, *args, **kwargs):
+        pass
+
+    def histogram(self, *args, **kwargs):
+        pass
 
 if __name__ == '__main__':
-    args = parser.parse_args()
-    #vis = visdom.Visdom(server=args.server, port=args.port, env=args.exp_name)
-    vis=None
+    args = parse_arg()
+    args.save_path = os.path.join(args.root_path, args.exp_name)
+    args.model_path = os.path.join(args.save_path, 'model')
+    if args.use_visdom:
+        vis = visdom.Visdom(server=args.server, port=args.port, env=args.exp_name)
+    else:
+        vis = MockVisdom()
+    vis.text(repr(args), win='args')
+    prepare_save_path(args)
 
+    json.dump(vars(args), open(os.path.join(args.save_path, 'args.json'), 'w'))
     torch.manual_seed(args.seed)
     env = create_atari_env(args.env_name)
     shared_model = ActorCritic(
-        env.observation_space.shape[0], env.action_space, args.use_sn)
+        env.observation_space.shape[0], env.action_space, args.use_sn_critic, args.use_sn_actor,
+        args.use_sn_shared, args.depth)
     shared_model.share_memory()
 
     if args.no_shared:
         optimizer = None
     else:
-        optimizer = shared_optimizer.SharedAdam(shared_model.parameters(), lr=args.lr)
+        optimizer = optim.SharedAdam(shared_model.parameters(), lr=args.lr)
         optimizer.share_memory()
 
     processes = []
@@ -70,7 +88,7 @@ if __name__ == '__main__':
     counter = mp.Value('i', 0)
     lock = mp.Lock()
 
-    p = mp.Process(target=test, args=(args.num_processes, args, shared_model, counter, vis))
+    p = mp.Process(target=evaluation, args=(args.num_processes, args, shared_model, counter, vis))
     p.start()
     processes.append(p)
 

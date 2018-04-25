@@ -18,7 +18,7 @@ def sn_weight(weight, u, height, n_power_iterations):
 
 
 class SNConv2d(nn.Conv2d):
-    def __init__(self, *args, n_power_iterations=1, **kwargs):
+    def __init__(self, *args, n_power_iterations=5, **kwargs):
         super(SNConv2d, self).__init__(*args, **kwargs)
         self.n_power_iterations = n_power_iterations
         self.height = self.weight.data.shape[0]
@@ -31,7 +31,7 @@ class SNConv2d(nn.Conv2d):
 
 
 class SNLinear(nn.Linear):
-    def __init__(self, *args, n_power_iterations=1, **kwargs):
+    def __init__(self, *args, n_power_iterations=5, **kwargs):
         super(SNLinear, self).__init__(*args, **kwargs)
         self.n_power_iterations = n_power_iterations
         self.height = self.weight.data.shape[0]
