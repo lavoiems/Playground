@@ -34,7 +34,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
     done = True
 
     episode_length = 0
-    while True:
+    for _ in args.num_episodes:
         model.load_state_dict(shared_model.state_dict())
         if done:
             cx = Variable(torch.zeros(1, 256))
