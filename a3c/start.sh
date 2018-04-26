@@ -6,6 +6,6 @@ export PYTHONPATH=''
 echo Running on $HOSTNAME
 
 module load miniconda3
-source activate py35
+source activate py36
 
 python main.py --server http://samuel.zapto.org --port 14445 "$@"
