@@ -11,7 +11,7 @@ from model import ActorCritic
 import numpy as np
 
 
-def evaluation(rank, args, shared_model, counter, vis):
+def evaluation(rank, args, shared_model, counter, n_episodes, vis):
     torch.manual_seed(args.seed + rank)
 
     env = create_atari_env(args.env_name)
@@ -35,6 +35,8 @@ def evaluation(rank, args, shared_model, counter, vis):
     all_entropies = np.array([])
     entropies = []
     while True:
+        if n_episodes.value >= args.num_episodes:
+            break
         episode_length += 1
         if done:
             model.load_state_dict(shared_model.state_dict())
@@ -59,10 +61,11 @@ def evaluation(rank, args, shared_model, counter, vis):
         actions.append(action[0, 0])
 
         if done:
+            n_episodes.value += 1
             rewards_sum = np.append(rewards_sum, [reward_sum])
             all_entropies = np.append(all_entropies, [np.mean(entropies)])
-            print("Steps: %s, Reward: %s, Length %s, entropy %s, Mean reward: %s" %
-                  (counter.value, reward_sum, episode_length, all_entropies[-1], rewards_sum.mean()))
+            print("Episode: %s, Steps: %s, Reward: %s, Length %s, entropy %s, Mean reward: %s" %
+                  (n_episodes.value, counter.value, reward_sum, episode_length, all_entropies[-1], rewards_sum.mean()))
             episode_lengths = np.append(episode_lengths, [episode_length])
             vis.line(np.array(rewards_sum), X=np.array(range(len(rewards_sum))), win='rewards', opts={'title': 'Rewards'})
             np.save(os.path.join(args.save_path, 'rewards.npy'), rewards_sum)

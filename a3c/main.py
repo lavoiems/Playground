@@ -86,14 +86,15 @@ if __name__ == '__main__':
     processes = []
 
     counter = mp.Value('i', 0)
+    n_episodes = mp.Value('i', 0)
     lock = mp.Lock()
 
-    p = mp.Process(target=evaluation, args=(args.num_processes, args, shared_model, counter, vis))
+    p = mp.Process(target=evaluation, args=(args.num_processes, args, shared_model, counter, n_episodes, vis))
     p.start()
     processes.append(p)
 
     for rank in range(0, args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, shared_model, counter, lock, optimizer))
+        p = mp.Process(target=train, args=(rank, args, shared_model, counter, n_episodes, lock, optimizer))
         p.start()
         processes.append(p)
     for p in processes:
