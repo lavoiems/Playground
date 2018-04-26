@@ -19,7 +19,7 @@ def parse_arg():
     parser = argparse.ArgumentParser(description='A3C')
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--entropy', type=float, default=0.01)
+    parser.add_argument('--entropy', type=float, default=0.001)
     parser.add_argument('--value-loss', type=float, default=0.5)
     parser.add_argument('--seed', type=int, default=2)
     parser.add_argument('--num-processes', type=int, default=4)
@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
     processes = []
 
-    mp.set_start_method('spawn')
+#    mp.set_start_method('spawn')
     counter = mp.Value('i', 0)
     n_episodes = mp.Value('i', 0)
     lock = mp.Lock()
