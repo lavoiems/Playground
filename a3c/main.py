@@ -85,6 +85,7 @@ if __name__ == '__main__':
 
     processes = []
 
+    mp.set_start_method('spawn')
     counter = mp.Value('i', 0)
     n_episodes = mp.Value('i', 0)
     lock = mp.Lock()
