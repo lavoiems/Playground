@@ -13,7 +13,6 @@ from envs import create_atari_env
 from model import ActorCritic
 from evaluation import evaluation
 from train import train
-import visdom
 
 
 def parse_arg():
@@ -63,6 +62,7 @@ if __name__ == '__main__':
     args.save_path = os.path.join(args.root_path, args.exp_name)
     args.model_path = os.path.join(args.save_path, 'model')
     if args.use_visdom:
+        import visdom
         vis = visdom.Visdom(server=args.server, port=args.port, env=args.exp_name)
     else:
         vis = MockVisdom()
