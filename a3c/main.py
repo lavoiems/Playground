@@ -31,7 +31,8 @@ def parse_arg():
     parser.add_argument('--use-sn-critic', default=False, type=bool)
     parser.add_argument('--use-sn-actor', default=False, type=bool)
     parser.add_argument('--use-sn-shared', default=False, type=bool)
-    parser.add_argument('--depth', default=0, type=int)
+    parser.add_argument('--depth-actor', default=0, type=int)
+    parser.add_argument('--depth-critic', default=0, type=int)
     parser.add_argument('--use-visdom', default=False, type=bool)
     parser.add_argument('--server', help='Visdom server')
     parser.add_argument('--port', help='Visdom port')
@@ -74,7 +75,7 @@ if __name__ == '__main__':
     env = create_atari_env(args.env_name)
     shared_model = ActorCritic(
         env.observation_space.shape[0], env.action_space, args.use_sn_critic, args.use_sn_actor,
-        args.use_sn_shared, args.depth)
+        args.use_sn_shared, args.depth_actor, args.depth_critic)
     shared_model.share_memory()
 
     if args.no_shared:
@@ -90,7 +91,7 @@ if __name__ == '__main__':
     n_episodes = mp.Value('i', 0)
     lock = mp.Lock()
 
-    p = mp.Process(target=evaluation, args=(args.num_processes, args, shared_model, counter, n_episodes, vis))
+    p = mp.Process(target=evaluation, args=(args.num_processes, args, shared_model, counter, n_episodes, vis, optimizer))
     p.start()
     processes.append(p)
 

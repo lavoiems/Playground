@@ -11,14 +11,20 @@ from model import ActorCritic
 import numpy as np
 
 
-def evaluation(rank, args, shared_model, counter, n_episodes, vis):
+def adjust_lr(optimizer, epoch, init_lr):
+    lr = init_lr * (0.1 ** (epoch // 20))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+
+
+def evaluation(rank, args, shared_model, counter, n_episodes, vis, optimizer):
     torch.manual_seed(args.seed + rank)
 
     env = create_atari_env(args.env_name)
     env.seed(args.seed + rank)
 
     model = ActorCritic(env.observation_space.shape[0], env.action_space, args.use_sn_critic, args.use_sn_actor,
-                        args.use_sn_shared, args.depth)
+                        args.use_sn_shared, args.depth_actor, args.depth_critic)
 
     model.eval()
 
@@ -62,6 +68,7 @@ def evaluation(rank, args, shared_model, counter, n_episodes, vis):
 
         if done:
             n_episodes.value += 1
+            adjust_lr(optimizer, n_episode, args.lr)
             rewards_sum = np.append(rewards_sum, [reward_sum])
             all_entropies = np.append(all_entropies, [np.mean(entropies)])
             print("Episode: %s, Steps: %s, Reward: %s, Length %s, entropy %s, Mean reward: %s" %

@@ -22,7 +22,7 @@ def train(rank, args, shared_model, counter, n_episodes, lock, optimizer=None):
     env.seed(args.seed + rank)
 
     model = ActorCritic(env.observation_space.shape[0], env.action_space, args.use_sn_critic, args.use_sn_actor,
-                        args.use_sn_shared, args.depth)
+                        args.use_sn_shared, args.depth_actor, args.depth_critic)
 
     if optimizer is None:
         optimizer = optim.Adam(shared_model.parameters(), lr=args.lr)
@@ -52,8 +52,7 @@ def train(rank, args, shared_model, counter, n_episodes, lock, optimizer=None):
 
         for step in range(args.num_steps):
             episode_length += 1
-            value, logit, (hx, cx) = model((Variable(state.unsqueeze(0)),
-                                            (hx, cx)))
+            value, logit, (hx, cx) = model((Variable(state.unsqueeze(0)), (hx, cx)))
             prob = F.softmax(logit, 1)
             log_prob = F.log_softmax(logit, 1)
             entropy = -(log_prob * prob).sum(1, keepdim=True)
@@ -106,6 +105,7 @@ def train(rank, args, shared_model, counter, n_episodes, lock, optimizer=None):
         optimizer.zero_grad()
 
         (policy_loss + args.value_loss * value_loss).backward()
+        torch.nn.utils.clip_grad_norm(model.parameters(), 50)
 
         ensure_shared_grads(model, shared_model)
         optimizer.step()

@@ -30,7 +30,7 @@ def weights_init(m):
 
 
 class ActorCritic(torch.nn.Module):
-    def __init__(self, num_inputs, action_space, use_sn_critic, use_sn_actor, use_sn_shared, depth):
+    def __init__(self, num_inputs, action_space, use_sn_critic, use_sn_actor, use_sn_shared, depth_actor, depth_critic):
         super(ActorCritic, self).__init__()
         if use_sn_critic:
             LinearCritic = SNLinear
@@ -55,9 +55,10 @@ class ActorCritic(torch.nn.Module):
         num_outputs = action_space.n
         self.critic_linear = nn.Sequential()
         self.actor_linear = nn.Sequential()
-        for i in range(depth):
+        for i in range(depth_actor):
             self.critic_linear.add_module('critic_linear_%s' % i, LinearCritic(256, 256))
             self.critic_linear.add_module('critic_relu_%s' % i, nn.ReLU())
+        for i in range(depth_critic):
             self.actor_linear.add_module('actor_linear_%s' % i, LinearActor(256, 256))
             self.actor_linear.add_module('actor_relu_%s' % i, nn.ReLU())
 
