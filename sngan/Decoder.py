@@ -4,27 +4,27 @@ from torch.autograd import Variable
 
 from loader import load_svhn
 from Encoder import Encoder
-from modules import View, n_maps
+from modules import View, n_maps2
 
 
 def conv_decoder(shape, dim_h, z_size, batch_norm, nonlinearity, min_dim):
     model = nn.Sequential()
     n_convolution = int(math.log(shape[1] / min_dim, 2))
-    c, x, y = 2 * (n_convolution - 1) * dim_h, int(shape[1] / 2 ** n_convolution), int(shape[2] / (2 ** n_convolution))
+    c, x, y = 2 ** n_convolution * dim_h, int(shape[1] / 2 ** n_convolution), int(shape[2] / (2 ** n_convolution))
     model.add_module('lin', nn.Linear(z_size, c * x * y))
-    model.add_module('_bn', nn.BatchNorm1d(c * x * y))
     model.add_module('expand', View(-1, c, x, y))
     f_size, stride, pad = 4, 2, 1
     for c in reversed(range(n_convolution)):
-        n_maps_in = n_maps(c + 1, dim_h, shape[0])
-        n_maps_out = n_maps(c, dim_h, shape[0])
+        n_maps_in = n_maps2(c + 1, dim_h, dim_h)
+        n_maps_out = n_maps2(c, dim_h, dim_h)
         conv = nn.ConvTranspose2d(n_maps_in, n_maps_out, f_size, stride, pad, bias=False)
         name = 'conv_%s_%s' % (n_maps_in, n_maps_out)
         model.add_module(name, conv)
         if batch_norm:
             model.add_module(name + '_bn', nn.BatchNorm2d(n_maps_out))
-        if c != 0:
-            model.add_module('%s_%s' % (name, nonlinearity), nonlinearity)
+        model.add_module('%s_%s' % (name, nonlinearity), nonlinearity)
+    conv = nn.Conv2d(dim_h, 3, 3, stride=1, padding=1, bias=False)
+    model.add_module('conv', conv)
     return model
 
 

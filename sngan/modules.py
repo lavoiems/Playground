@@ -11,6 +11,10 @@ class View(nn.Module):
 
 
 def n_maps(x, dim_h, default):
-    return max(2 * (x - 1), 1) * dim_h if x != 0 else default
+    return max(2 ** (x - 1), 1) * dim_h if x != 0 else default
+
+
+def n_maps2(x, dim_h, default):
+    return max(2 ** x, 1) * dim_h if x != 0 else default
 
 

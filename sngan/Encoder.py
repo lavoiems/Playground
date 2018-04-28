@@ -11,16 +11,19 @@ def conv_encoder(shape, dim_h, o_size, batch_norm, nonlinearity, min_dim, Conv2d
     model = nn.Sequential()
     n_convolution = int(math.log(shape[1] / min_dim, 2))
     f_size, stride, pad = 4, 2, 1
-    for c in range(n_convolution):
+    for c in range(n_convolution + 1):
         n_maps_in = n_maps(c, dim_h, shape[0])
         n_maps_out = n_maps(c+1, dim_h, shape[0])
-        conv = Conv2d(n_maps_in, n_maps_out, f_size, stride, pad, bias=False)
-        name = 'conv_%s_%s' % (n_maps_in, n_maps_out)
+        conv = Conv2d(n_maps_in, n_maps_out, 3, 1, 1, bias=False)
+        name = '3conv_%s_%s' % (n_maps_in, n_maps_out)
         model.add_module(name, conv)
-        if batch_norm:
-            model.add_module(name + '_bn', nn.BatchNorm2d(n_maps_out))
         model.add_module('%s_%s' % (name, nonlinearity), nonlinearity)
-    cat_size = int(2 * (n_convolution - 1) * dim_h * (shape[1] / 2 ** n_convolution) * (shape[2] / (2 ** n_convolution)))
+        if c != n_convolution:
+            conv = Conv2d(n_maps_out, n_maps_out, f_size, stride, pad, bias=False)
+            name = '4conv_%s_%s' % (n_maps_out, n_maps_out)
+            model.add_module(name, conv)
+            model.add_module('%s_%s' % (name, nonlinearity), nonlinearity)
+    cat_size = int(2 ** n_convolution * dim_h * (shape[1] / 2 ** n_convolution) * (shape[2] / (2 ** n_convolution)))
     model.add_module('flatten', View(-1, cat_size))
     model.add_module('lin', Linear(cat_size, o_size, bias=False))
     return model
