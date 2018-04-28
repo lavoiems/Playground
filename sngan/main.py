@@ -13,6 +13,8 @@ import argparse
 import getpass
 import os
 import torchvision
+import objectives
+import json
 
 
 def weights_init(m):
@@ -28,33 +30,6 @@ def get_data(loader):
     data = iter(loader).next()
     data[0] = 2 * data[0] - 1.
     return Variable(data[0].cuda()), Variable(data[1].cuda())
-
-
-def get_gen_loss(gan, discriminator, batch_size, z_size):
-    criterion = nn.Softplus().cuda()
-    z = Variable(torch.Tensor(batch_size, z_size).normal_(0,1)).cuda()
-    prime = gan(z)
-    fake_out = discriminator(prime)
-    fake_loss = criterion(-fake_out).mean()
-    fake_loss.backward()
-
-    return fake_loss
-
-
-def get_disc_loss(train_data, gan, discriminator, batch_size, z_size):
-    criterion = nn.Softplus().cuda()
-    real = Variable(train_data[0].cuda())
-    real = 2 * real - 1.
-    real_out = discriminator(real)
-    real_loss = criterion(-real_out).mean()
-    real_loss.backward()
-
-    z = Variable(torch.FloatTensor(batch_size, z_size).normal_(0,1).cuda())
-    prime = gan(z).detach()
-    fake_out = discriminator(prime)
-    fake_loss = (criterion(-fake_out) + fake_out).mean()
-    fake_loss.backward()
-    return real_loss, fake_loss
 
 
 def vizualize(inputs, net, id, z_size, viz, save_path, batch_size):
@@ -108,6 +83,8 @@ def parse_args():
     parser.add_argument('--port')
     parser.add_argument('--use-visdom', action='store_true')
     parser.add_argument('--use-sn', action='store_true')
+    parser.add_argument('--objective', default='jsgan', choices=['jsgan', 'wgan'])
+    parser.add_argument('--use-penalty', default=False, action='store_true')
     parser.add_argument('--batch-size', default=64)
     parser.add_argument('--test-batch-size', default=64)
     parser.add_argument('--gen-h-size', default=64)
@@ -125,6 +102,8 @@ if __name__ == '__main__':
     args.save_path = os.path.join(args.root_path, args.exp_name)
     args.model_path = os.path.join(args.save_path, 'model')
     prepare_save_path(args)
+    get_gen_loss, get_disc_loss = objectives.losses[args.objective]
+    json.dump(vars(args), open(os.path.join(args.save_path, 'args.json'), 'w'))
     if args.use_visdom:
         import viz
         viz.setup(args.server, args.port, env=args.env_name, use_tanh=True)
@@ -148,7 +127,7 @@ if __name__ == '__main__':
         start = time.time()
         for data in train_loader:
             discriminator_optimizer.zero_grad()
-            loss = get_disc_loss(data, gan, discriminator, data[0].shape[0], args.z_size)
+            loss = get_disc_loss(data, gan, discriminator, data[0].shape[0], args.z_size, args.use_penalty)
             discriminator_optimizer.step()
             if i % args.n_dis == 0:
                 generator_optimizer.zero_grad()
