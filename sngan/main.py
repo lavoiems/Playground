@@ -120,16 +120,19 @@ if __name__ == '__main__':
     generator_optimizer = optim.Adam(gan.parameters(), lr=args.lr, betas=(args.beta1, args.beta2))
     discriminator_optimizer = optim.Adam(discriminator.parameters(), lr=args.lr, betas=(args.beta1, args.beta2))
 
+    t = 0
     for i in range(201):
         print('Epoch: %s' % i)
         gan.train()
         discriminator.train()
         start = time.time()
         for data in train_loader:
+            t += 1
             discriminator_optimizer.zero_grad()
             loss = get_disc_loss(data, gan, discriminator, data[0].shape[0], args.z_size, args.use_penalty)
             discriminator_optimizer.step()
-            if i % args.n_dis == 0:
+            if t == args.n_dis:
+                t = 0
                 generator_optimizer.zero_grad()
                 loss = get_gen_loss(gan, discriminator, data[0].shape[0], args.z_size)
                 generator_optimizer.step()
