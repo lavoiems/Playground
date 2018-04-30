@@ -51,22 +51,28 @@ def inception_score(dataset, batch_size=32, splits=1):
 
 def generate_samples(batch_size, net, z_size):
     z = Variable(torch.FloatTensor(batch_size, z_size).normal_(0,1)).cuda()
-    z_data = net(z).data.cpu()
+    z_data = (net(z).data.cpu() + 1) / 2.
     return ((sample, 0) for sample in z_data)
 
 
 if __name__ == '__main__':
     import argparse
+    import json
+    import torchvision
     parser = argparse.ArgumentParser(description='Evaluation scores')
-    parser.add_argument('--model-path', required=True)
-    parser.add_argument('--h-size', default=64)
-    parser.add_argument('--z-size', default=128)
+    parser.add_argument('--path', required=True)
+    parser.add_argument('--epoch', type=int,
+                        help='Which model epoch you want to use. Must be present', default=200)
     args = parser.parse_args()
+    model_args = json.load(open(os.path.join(args.path, 'args.json')))
 
-    model = Decoder((3, 64, 64), args.h_size, args.z_size, True, nn.ReLU(True), 4).cuda()
-    model.load_state_dict(torch.load(args.model_path))
+    model = Decoder((3, 32, 32), model_args['gen_h_size'], model_args['z_size'], True, nn.ReLU(True), 4).cuda()
+    model.load_state_dict(torch.load(os.path.join(model_args['model_path'], 'model[%s].ph' % args.epoch)))
     print('Generating samples')
-    batches = [generate_samples(1000, model, args.z_size) for _ in range(50)]
+    batches = [generate_samples(1000, model, model_args['z_size']) for _ in range(50)]
     samples = [sample for batch in batches for sample in batch]
+    print('Saving samples')
+    imgs = torch.stack([s[0] for s in samples[:64]], 0)
+    torchvision.utils.save_image(imgs, os.path.join(model_args['save_path'], 'evaluation_samples.png'), nrow=8)
     print('Generating Inception score')
     print('Inception score:', inception_score(samples, batch_size=64, splits=10))
