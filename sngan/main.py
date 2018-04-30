@@ -106,7 +106,7 @@ if __name__ == '__main__':
     json.dump(vars(args), open(os.path.join(args.save_path, 'args.json'), 'w'))
     if args.use_visdom:
         import viz
-        viz.setup(args.server, args.port, env=args.env_name, use_tanh=True)
+        viz.setup(args.server, args.port, env=args.exp_name, use_tanh=True)
     else:
         viz = MockVisdom()
     encoder = SNEncoder if args.use_sn else Encoder
