@@ -62,7 +62,7 @@ class MockVisdom():
     def save_images(self, *args, **kwargs):
         imgs = args[0]
         rows = args[1]
-        torchvision.utils.save_image(torch.FloatTensor(imgs), kwargs['out_file'], nrow=rows)
+        torchvision.utils.save_image((torch.FloatTensor(imgs) + 1) / 2, kwargs['out_file'], nrow=rows)
 
     def save_tsne(self, *args, **kwargs):
         pass
