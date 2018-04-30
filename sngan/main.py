@@ -113,7 +113,7 @@ if __name__ == '__main__':
     train_loader, test_loader, shape = load_cifar(args.dataset_loc, args.batch_size, args.test_batch_size)
 
     gan = Decoder(shape, args.gen_h_size, args.z_size, True, nn.ReLU(True), 4).cuda()
-    discriminator = encoder(shape, args.gen_h_size, 1, True, nn.LeakyReLU(0.1, True), 4).cuda()
+    discriminator = encoder(shape, args.disc_h_size, 1, True, nn.LeakyReLU(0.1, True), 4).cuda()
     gan.apply(weights_init)
     discriminator.apply(weights_init)
 
