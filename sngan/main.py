@@ -26,6 +26,14 @@ def weights_init(m):
         m.bias.data.fill_(0)
 
 
+def weight_cliping(n):
+    def weight_clip(m):
+        classname = m.__class__.__name__
+        if classname.find('Conv') != -1 or classname.find('Linear') != -1:
+            m.weight.data.clamp_(-n, n)
+    return weight_clip
+
+
 def get_data(loader):
     data = iter(loader).next()
     data[0] = 2 * data[0] - 1.
@@ -95,6 +103,7 @@ def parse_args():
     parser.add_argument('--beta2', default=0.9, help='Adam parameter', type=float)
     parser.add_argument('--n-dis', default=5, help='Number of discriminator interation for each generator interation', type=int)
     parser.add_argument('--root-path', default='/data/milatmp1/%s/sngan' % getpass.getuser())
+    parser.add_argument('--use_weight_clip', action='store_true')
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -116,6 +125,7 @@ if __name__ == '__main__':
     discriminator = encoder(shape, args.disc_h_size, 1, True, nn.LeakyReLU(0.1, True), 4).cuda()
     gan.apply(weights_init)
     discriminator.apply(weights_init)
+    weight_clip = weight_cliping(0.05)
 
     generator_optimizer = optim.Adam(gan.parameters(), lr=args.lr, betas=(args.beta1, args.beta2))
     discriminator_optimizer = optim.Adam(discriminator.parameters(), lr=args.lr, betas=(args.beta1, args.beta2))
@@ -131,6 +141,8 @@ if __name__ == '__main__':
             discriminator_optimizer.zero_grad()
             loss = get_disc_loss(data, gan, discriminator, data[0].shape[0], args.z_size, args.use_penalty)
             discriminator_optimizer.step()
+            if args.use_weight_clip:
+                discriminator.apply(weight_clip)
             if t == args.n_dis:
                 t = 0
                 generator_optimizer.zero_grad()
