@@ -103,7 +103,8 @@ def parse_args():
     parser.add_argument('--beta2', default=0.9, help='Adam parameter', type=float)
     parser.add_argument('--n-dis', default=5, help='Number of discriminator interation for each generator interation', type=int)
     parser.add_argument('--root-path', default='/data/milatmp1/%s/sngan' % getpass.getuser())
-    parser.add_argument('--use_weight_clip', action='store_true')
+    parser.add_argument('--use-weight-clip', action='store_true')
+    parser.add_argument('--use-orthonormal', action='store_true')
     return parser.parse_args()
 
 if __name__ == '__main__':
